@@ -21,75 +21,20 @@ const timeAgo = (date) => {
   return "just now";
 };
 
-const TaskCard = React.memo(function TaskCard({
-  task,
-  updateStatus,
-  addNote,
-  noteValue,
-  onNoteChange,
-}) {
-  return (
-    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm hover:shadow-md transition">
-      <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-lg">{task.title}</h3>
-        <span
-          className={`text-xs px-2 py-1 rounded-full ${
-            task.status === "Completed"
-              ? "bg-green-100 text-green-700"
-              : "bg-yellow-100 text-yellow-700"
-          }`}
-        >
-          {task.status}
-        </span>
-      </div>
+// Utility: Format duration in a readable way
+const formatDuration = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
 
-      <p className="text-gray-600 text-sm mt-1">{task.description}</p>
-
-      <p className="text-xs text-gray-400 mt-1">
-        Assigned {timeAgo(task.createdAt)}
-      </p>
-
-      <button
-        onClick={() => updateStatus(task._id, task.status)}
-        className="mt-3 px-3 py-1 bg-gray-900 text-white text-xs rounded-md hover:bg-gray-800"
-      >
-        {task.status === "Completed" ? "Mark Ongoing" : "Mark Completed"}
-      </button>
-
-      <div className="mt-3">
-        <h4 className="text-sm font-semibold">Notes</h4>
-
-        <div className="max-h-20 overflow-y-auto mt-1">
-          {task.notes?.length ? (
-            task.notes.map((note, index) => (
-              <p key={index} className="text-gray-700 text-xs border-b py-1">
-                • {note.message}
-              </p>
-            ))
-          ) : (
-            <p className="text-gray-400 text-xs">No notes yet.</p>
-          )}
-        </div>
-
-        <div className="flex gap-2 mt-2">
-          <input
-            type="text"
-            placeholder="Add a note..."
-            value={noteValue}
-            onChange={(e) => onNoteChange(task._id, e.target.value)}
-            className="w-full text-xs border px-2 py-1 rounded-md"
-          />
-          <button
-            onClick={() => addNote(task._id)}
-            className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-});
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
+};
 
 const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -124,7 +69,7 @@ const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
     const dateStr = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth(),
-      day
+      day,
     ).toDateString();
 
     return tasks.filter((task) => {
@@ -137,13 +82,13 @@ const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
 
   const prevMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
     );
   };
 
   const nextMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
     );
   };
 
@@ -194,10 +139,10 @@ const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
           const day = index + 1;
           const dayTasks = getTasksForDate(day);
           const hasCompletedTasks = dayTasks.some(
-            (t) => t.status === "Completed"
+            (t) => t.status === "Completed",
           );
           const hasPendingTasks = dayTasks.some(
-            (t) => t.status !== "Completed"
+            (t) => t.status !== "Completed",
           );
 
           return (
@@ -207,7 +152,7 @@ const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
                 const clickedDate = new Date(
                   currentMonth.getFullYear(),
                   currentMonth.getMonth(),
-                  day
+                  day,
                 );
                 onDateSelect(clickedDate);
               }}
@@ -245,19 +190,196 @@ const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
   );
 };
 
+const TaskCard = React.memo(function TaskCard({
+  task,
+  addNote,
+  noteValue,
+  onNoteChange,
+  startTask,
+  pauseTask,
+  completeTask,
+  reopenTask,
+  currentTime,
+}) {
+  const getLiveTimeSpent = () => {
+    if (!task.startTime) return "Not started";
+    const totalWorked = task.totalWorkedSeconds || 0;
+    if (task.status === "Completed") return formatDuration(totalWorked);
+
+    let liveSeconds = totalWorked;
+    if (!task.isPaused && task.lastResumedAt) {
+      liveSeconds += Math.floor(
+        (currentTime - new Date(task.lastResumedAt)) / 1000,
+      );
+    }
+    return formatDuration(Math.max(0, liveSeconds));
+  };
+
+  return (
+    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm hover:shadow-md transition">
+      <div className="flex justify-between items-center">
+        <h3 className="font-semibold text-lg">{task.title}</h3>
+        <span
+          className={`text-xs px-2 py-1 rounded-full ${
+            task.status === "Completed"
+              ? "bg-green-100 text-green-700"
+              : task.status === "Paused"
+                ? "bg-orange-100 text-orange-700"
+                : task.status === "Ongoing"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-yellow-100 text-yellow-700"
+          }`}
+        >
+          {task.status}
+        </span>
+      </div>
+
+      <p className="text-gray-600 text-sm mt-1">{task.description}</p>
+
+      <p className="text-xs text-gray-400 mt-1">
+        Assigned{" "}
+        {new Date(task.createdAt).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })}
+      </p>
+
+      {task.startTime && (
+        <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-700">
+              ⏱️ Time Spent:
+            </span>
+            <span
+              className={`text-sm font-bold ${
+                task.status === "Ongoing"
+                  ? "text-blue-600"
+                  : task.status === "Paused"
+                    ? "text-orange-600"
+                    : "text-green-600"
+              }`}
+            >
+              {getLiveTimeSpent()}
+            </span>
+          </div>
+          {/* ... status indicators ... */}
+        </div>
+      )}
+
+      {task.status === "Completed" && task.updatedAt && (
+        <p className="text-xs text-gray-400 mt-1">
+          Completed{" "}
+          {new Date(task.updatedAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </p>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-2 mt-3 flex-wrap">
+        {(task.status === "Pending" || !task.startTime) && (
+          <button
+            onClick={() => startTask(task._id)}
+            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+          >
+            ▶ Start
+          </button>
+        )}
+
+        {(task.status === "Ongoing" || task.status === "Paused") &&
+          task.startTime && (
+            <button
+              onClick={() => pauseTask(task._id)}
+              className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+            >
+              {task.status === "Paused" ? "▶ Resume" : "⏸ Pause"}
+            </button>
+          )}
+
+        {task.status !== "Completed" && (
+          <button
+            onClick={() => completeTask(task._id)}
+            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+          >
+            Complete
+          </button>
+        )}
+
+        {task.status === "Completed" && (
+          <button
+            onClick={() => reopenTask(task._id)}
+            className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+          >
+            Reopen
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <h4 className="text-sm font-semibold">Notes</h4>
+
+        <div className="max-h-20 overflow-y-auto mt-1">
+          {task.notes?.length ? (
+            task.notes.map((note, index) => (
+              <p key={index} className="text-gray-700 text-xs border-b py-1">
+                • {note.message}
+              </p>
+            ))
+          ) : (
+            <p className="text-gray-400 text-xs">No notes yet.</p>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            placeholder="Add a note..."
+            value={noteValue}
+            onChange={(e) => onNoteChange(task._id, e.target.value)}
+            className="w-full text-xs border px-2 py-1 rounded-md"
+          />
+          <button
+            onClick={() => addNote(task._id)}
+            className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export default function EmployeePanel() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [noteInputs, setNoteInputs] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const token = JSON.parse(sessionStorage.getItem("userInfo"))?.token;
+  const token = JSON.parse(sessionStorage.getItem("userInfo") || "{}")?.token;
+
+  // Update current time every second for live timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchTasks = async () => {
     try {
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/tasks`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setTasks(data);
     } catch (err) {
@@ -266,53 +388,99 @@ export default function EmployeePanel() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchTasks();
+    const interval = setInterval(fetchTasks, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Get tasks for selected date
-  const getTasksForSelectedDate = () => {
-    if (!selectedDate) return [];
-    const selectedDateStr = selectedDate.toDateString();
-    return tasks.filter((task) => {
-      const taskDate = new Date(task.createdAt).toDateString();
-      return taskDate === selectedDateStr;
-    });
+  const startTask = async (taskId) => {
+    try {
+      const { data } = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/start`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      setTasks((prev) => prev.map((t) => (t._id === taskId ? data : t)));
+    } catch (err) {
+      console.error("Error starting task:", err);
+      alert("Error: " + (err.response?.data?.message || err.message));
+    }
   };
 
-  const selectedDateTasks = getTasksForSelectedDate();
-  const selectedOngoing = selectedDateTasks.filter(
-    (t) => t.status !== "Completed"
-  );
-  const selectedCompleted = selectedDateTasks.filter(
-    (t) => t.status === "Completed"
-  );
+  const pauseTask = async (taskId) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t._id === taskId && !t.isPaused) {
+          const now = new Date();
+          const activeTime = t.lastResumedAt
+            ? Math.floor((now - new Date(t.lastResumedAt)) / 1000)
+            : 0;
+          return {
+            ...t,
+            isPaused: true,
+            status: "Paused",
+            pausedAt: now,
+            totalWorkedSeconds: (t.totalWorkedSeconds || 0) + activeTime,
+          };
+        }
+        return t;
+      }),
+    );
 
-  // Split tasks into Ongoing & Completed
-  const ongoingTasks = tasks.filter((t) => t.status !== "Completed");
-  const completedTasks = tasks.filter((t) => t.status === "Completed");
-
-  // Summary
-  const totalTasks = tasks.length;
-  const completedCount = completedTasks.length;
-  const pendingCount = ongoingTasks.length;
-
-  const updateStatus = async (taskId, currentStatus) => {
     try {
-      const newStatus = currentStatus === "Completed" ? "Ongoing" : "Completed";
-
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const { data } = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/pause`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      setTasks((prev) =>
-        prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t))
-      );
+      setTasks((prev) => prev.map((t) => (t._id === taskId ? data : t)));
     } catch (err) {
-      console.error("Error updating status:", err);
+      console.error(err);
+    }
+  };
+
+  const completeTask = async (taskId) => {
+    try {
+      const { data } = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/complete`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      setTasks((prev) => prev.map((t) => (t._id === taskId ? data : t)));
+    } catch (err) {
+      console.error("Error completing task:", err);
+      alert("Error: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const reopenTask = async (taskId) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t._id === taskId
+          ? {
+              ...t,
+              status: "Ongoing",
+              isPaused: false,
+              lastResumedAt: new Date(),
+            }
+          : t,
+      ),
+    );
+
+    try {
+      const { data } = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/reopen`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      setTasks((prev) => prev.map((t) => (t._id === taskId ? data : t)));
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -328,11 +496,11 @@ export default function EmployeePanel() {
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/notes`,
         { message: note },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setTasks((prev) =>
-        prev.map((t) => (t._id === taskId ? { ...t, notes: data.notes } : t))
+        prev.map((t) => (t._id === taskId ? { ...t, notes: data.notes } : t)),
       );
 
       setNoteInputs((prev) => ({ ...prev, [taskId]: "" }));
@@ -341,12 +509,58 @@ export default function EmployeePanel() {
     }
   };
 
+  const getTasksForSelectedDate = () => {
+    if (!selectedDate) return [];
+    const selectedDateStr = selectedDate.toDateString();
+    return tasks.filter((task) => {
+      const taskDate = new Date(task.createdAt).toDateString();
+      return taskDate === selectedDateStr;
+    });
+  };
+
+  const selectedDateTasks = getTasksForSelectedDate();
+  const selectedOngoing = selectedDateTasks.filter(
+    (t) => t.status !== "Completed",
+  );
+  const selectedCompleted = selectedDateTasks.filter(
+    (t) => t.status === "Completed",
+  );
+
+  // Split tasks into Ongoing & Completed
+  const ongoingTasks = tasks.filter((t) => t.status !== "Completed");
+  const completedTasks = tasks.filter((t) => t.status === "Completed");
+  const today = new Date().toLocaleDateString();
+
+  // for single day tasks
+  const todaysTasks = completedTasks.filter((task) => {
+    const taskDate = new Date(task.updatedAt).toLocaleDateString();
+    return taskDate === today;
+  });
+
+  // Summary
+  const totalTasks = tasks.length;
+  const completedCount = completedTasks.length;
+  const pendingCount = ongoingTasks.length;
+
+  //  FIXED: Calculate total time spent today (excluding pause time)
+  const totalTimeSpentToday = todaysTasks.reduce((total, task) => {
+    if (task.startTime && task.endTime) {
+      const start = new Date(task.startTime);
+      const end = new Date(task.endTime);
+      const rawTime = Math.floor((end - start) / 1000);
+      const actualTime = rawTime - (task.pausedDuration || 0);
+      return total + actualTime;
+    }
+    return total;
+  }, 0);
+
   if (loading)
-    return <p className="text-gray-500 text-center mt-10">Loading tasks...</p>;
+    return <p className="text-gray-500 text-center mt-10">Loading tasks....</p>;
 
   return (
     <div className="max-w-7xl mx-auto mt-8 px-4">
-      <h2 className="text-3xl my-5 font-bold">Employee panel</h2>
+      <h2 className="text-3xl my-5 font-bold">Employee Panel</h2>
+
       {/* Summary Section */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-gray-900 text-white p-4 rounded-lg text-center">
@@ -361,13 +575,17 @@ export default function EmployeePanel() {
           <p className="text-sm">Pending</p>
           <h3 className="text-xl font-bold">{pendingCount}</h3>
         </div>
+        {/* <div className="bg-blue-100 text-blue-700 p-4 rounded-lg text-center">
+          <p className="text-sm">Time Today</p>
+          <h3 className="text-xl font-bold">
+            {formatDuration(totalTimeSpentToday)}
+          </h3>
+        </div> */}
       </div>
 
       {/* Three Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT SIDE – CALENDAR */}
-
-        {/* MIDDLE – ONGOING TASKS */}
+        {/* LEFT – ONGOING TASKS */}
         <div>
           <h3 className="text-lg font-semibold mb-3 text-gray-800">
             Pending / Ongoing Tasks
@@ -378,10 +596,14 @@ export default function EmployeePanel() {
                 <TaskCard
                   key={task._id}
                   task={task}
-                  updateStatus={updateStatus}
                   addNote={addNote}
                   noteValue={noteInputs[task._id] || ""}
                   onNoteChange={handleNoteChange}
+                  startTask={startTask}
+                  pauseTask={pauseTask}
+                  completeTask={completeTask}
+                  reopenTask={reopenTask}
+                  currentTime={currentTime}
                 />
               ))
             ) : (
@@ -390,29 +612,34 @@ export default function EmployeePanel() {
           </div>
         </div>
 
-        {/* RIGHT SIDE – COMPLETED TASKS */}
+        {/* MIDDLE – COMPLETED TASKS */}
         <div>
           <h3 className="text-lg font-semibold mb-3 text-gray-800">
-            Completed Tasks
+            Today's Completed Tasks
           </h3>
           <div className="space-y-4 max-h-[520px] overflow-y-auto">
-            {completedTasks.length ? (
-              completedTasks.map((task) => (
+            {todaysTasks.length > 0 ? (
+              todaysTasks.map((task) => (
                 <TaskCard
                   key={task._id}
                   task={task}
-                  updateStatus={updateStatus}
                   addNote={addNote}
                   noteValue={noteInputs[task._id] || ""}
                   onNoteChange={handleNoteChange}
+                  startTask={startTask}
+                  pauseTask={pauseTask}
+                  completeTask={completeTask}
+                  reopenTask={reopenTask}
+                  currentTime={currentTime}
                 />
               ))
             ) : (
-              <p className="text-gray-500 text-sm">No completed tasks yet.</p>
+              <p className="text-gray-500 text-sm">No tasks completed today.</p>
             )}
           </div>
         </div>
 
+        {/* RIGHT – CALENDAR */}
         <div>
           <h3 className="text-lg font-semibold mb-3 text-gray-800">
             Task Calendar
@@ -434,7 +661,6 @@ export default function EmployeePanel() {
                 <p className="text-gray-500 text-sm">No tasks for this date.</p>
               ) : (
                 <div className="space-y-3">
-                  {/* Ongoing Tasks for Selected Date */}
                   {selectedOngoing.length > 0 && (
                     <div>
                       <h4 className="text-sm font-semibold text-yellow-700 mb-2">
@@ -454,7 +680,6 @@ export default function EmployeePanel() {
                     </div>
                   )}
 
-                  {/* Completed Tasks for Selected Date */}
                   {selectedCompleted.length > 0 && (
                     <div>
                       <h4 className="text-sm font-semibold text-green-700 mb-2">

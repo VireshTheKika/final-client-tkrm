@@ -13,10 +13,10 @@ export default function Login() {
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/users/google-login`,
         { token: credential },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
-      console.log("✅ Google Login Response:", data);
+      console.log(" Google Login Response:", data);
 
       if (!data || !data.email) {
         alert("No user data returned from server!");
@@ -26,7 +26,7 @@ export default function Login() {
       sessionStorage.setItem("userInfo", JSON.stringify(data));
       navigate("/dashboard");
     } catch (error) {
-      console.error("❌ Google login failed:", error);
+      console.error(" Google login failed:", error);
       alert("Google login failed!");
     }
   };
@@ -44,7 +44,7 @@ export default function Login() {
           onError={() => alert("Login Failed")}
         />
 
-        <p className="mt-6 text-sm text-gray-400">Powered by The Kika Agency</p>
+        <p className="mt-6 text-sm text-gray-400">The KIKA Creaive Agency</p>
       </div>
     </div>
   );

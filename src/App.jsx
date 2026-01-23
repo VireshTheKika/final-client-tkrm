@@ -10,7 +10,6 @@ import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import ManagerPanel from "./pages/ManagerPanel";
 import EmployeePanel from "./pages/EmployeePanel";
-import Tasks from "./pages/Tasks";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 // ✅ Protected route for authentication and role checking
@@ -72,16 +71,6 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["Employee"]}>
               <EmployeePanel />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Tasks Page (accessible by all logged-in users) */}
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute allowedRoles={["Admin", "Manager", "Employee"]}>
-              <Tasks />
             </ProtectedRoute>
           }
         />

@@ -42,7 +42,7 @@ export default function ManagerPanel() {
       } catch (error) {
         console.error(
           " Error fetching manager data:",
-          error.response?.data || error.message
+          error.response?.data || error.message,
         );
       }
     };
@@ -64,7 +64,7 @@ export default function ManagerPanel() {
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/tasks`,
         taskData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setTasks((prev) => [...prev, data.task]);
@@ -81,7 +81,7 @@ export default function ManagerPanel() {
     } catch (error) {
       console.error(
         "Error assigning task:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       toast.error(" Failed to assign task");
     } finally {
@@ -101,7 +101,7 @@ export default function ManagerPanel() {
         `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // remove deleted task from state
@@ -114,6 +114,188 @@ export default function ManagerPanel() {
     }
   };
 
+  const today = new Date();
+
+  const todaysTasks = tasks.filter((task) => {
+    const taskDate = new Date(task.createdAt);
+
+    return (
+      taskDate.getDate() === today.getDate() &&
+      taskDate.getMonth() === today.getMonth() &&
+      taskDate.getFullYear() === today.getFullYear()
+    );
+  });
+
+  const Calendar = ({ tasks, onDateSelect, selectedDate }) => {
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const getDaysInMonth = (date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startingDayOfWeek = firstDay.getDay();
+
+      return { daysInMonth, startingDayOfWeek };
+    };
+
+    const getTasksForDate = (day) => {
+      const dateStr = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day,
+      ).toDateString();
+
+      return tasks.filter((task) => {
+        const taskDate = new Date(task.createdAt).toDateString();
+        return taskDate === dateStr;
+      });
+    };
+
+    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth);
+
+    const prevMonth = () => {
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
+      );
+    };
+
+    const nextMonth = () => {
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
+      );
+    };
+
+    const isSelectedDate = (day) => {
+      if (!selectedDate) return false;
+      return (
+        selectedDate.getDate() === day &&
+        selectedDate.getMonth() === currentMonth.getMonth() &&
+        selectedDate.getFullYear() === currentMonth.getFullYear()
+      );
+    };
+
+    return (
+      <div className="bg-white border border-gray-300 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={prevMonth}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            ←
+          </button>
+          <h3 className="font-semibold text-lg">
+            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </h3>
+          <button
+            onClick={nextMonth}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div
+              key={day}
+              className="text-center text-xs font-semibold text-gray-600 py-2"
+            >
+              {day}
+            </div>
+          ))}
+
+          {Array.from({ length: startingDayOfWeek }).map((_, index) => (
+            <div key={`empty-${index}`} className="aspect-square"></div>
+          ))}
+
+          {Array.from({ length: daysInMonth }).map((_, index) => {
+            const day = index + 1;
+            const dayTasks = getTasksForDate(day);
+            const hasCompletedTasks = dayTasks.some(
+              (t) => t.status === "Completed",
+            );
+            const hasPendingTasks = dayTasks.some(
+              (t) => t.status !== "Completed",
+            );
+
+            return (
+              <button
+                key={day}
+                onClick={() => {
+                  const clickedDate = new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth(),
+                    day,
+                  );
+                  onDateSelect(clickedDate);
+                }}
+                className={`aspect-square flex flex-col items-center justify-center text-sm border rounded hover:bg-gray-100 transition ${
+                  isSelectedDate(day) ? "bg-blue-100 border-blue-500" : ""
+                }`}
+              >
+                <span className="font-medium">{day}</span>
+                {dayTasks.length > 0 && (
+                  <div className="flex gap-1 mt-1">
+                    {hasPendingTasks && (
+                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                    )}
+                    {hasCompletedTasks && (
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 text-xs text-gray-600">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <span>Pending/Ongoing Tasks</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Completed Tasks</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  const getTasksForSelectedDate = () => {
+    if (!selectedDate) return [];
+    const selectedDateStr = selectedDate.toDateString();
+    return tasks.filter((task) => {
+      const taskDate = new Date(task.createdAt).toDateString();
+      return taskDate === selectedDateStr;
+    });
+  };
+
+  const [selectedDate, setSelectedDate] = useState(null);
+  const selectedDateTasks = getTasksForSelectedDate();
+  const selectedOngoing = selectedDateTasks.filter(
+    (t) => t.status !== "Completed",
+  );
+  const selectedCompleted = selectedDateTasks.filter(
+    (t) => t.status === "Completed",
+  );
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h2 className="text-2xl font-semibold mb-2">Manager Panel</h2>
@@ -240,7 +422,7 @@ export default function ManagerPanel() {
 
           {tasks.length > 0 ? (
             <ul className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-              {tasks.map((task) => (
+              {todaysTasks.map((task) => (
                 <li
                   key={task._id}
                   className="p-4 bg-gray-50 border border-gray-200 rounded-xl hover:shadow-md transition-all duration-200"
@@ -313,7 +495,7 @@ export default function ManagerPanel() {
                                   year: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
-                                }
+                                },
                               )}
                             </b>
                           </p>
@@ -371,6 +553,82 @@ export default function ManagerPanel() {
             <p className="text-gray-400 text-sm">No tasks assigned yet.</p>
           )}
         </div>
+      </div>
+
+      {/* second row */}
+      <div className="grid md:grid-cols-3 gap-6 mt-20">
+        <Calendar
+          tasks={tasks}
+          onDateSelect={setSelectedDate}
+          selectedDate={selectedDate}
+        />
+
+        {/* Selected Date Tasks */}
+        {selectedDate && (
+          <div className="mt-6 max-h-[450px] overflow-y-auto bg-[#fff] rounded-2xl p-2">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800">
+              Tasks for {selectedDate.toLocaleDateString()}
+            </h3>
+
+            {selectedDateTasks.length === 0 ? (
+              <p className="text-gray-500 text-sm">No tasks for this date.</p>
+            ) : (
+              <div className="space-y-3">
+                {selectedOngoing.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-700 mb-2">
+                      Pending ({selectedOngoing.length})
+                    </h4>
+                    {selectedOngoing.map((task) => (
+                      <div
+                        key={task._id}
+                        className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 "
+                      >
+                        <p className="font-medium text-sm">
+                          Assigned to : {task.assignedTo?.name || "Unassigned"}
+                        </p>
+                        <p className="font-medium text-sm">
+                          Title : {task.title}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Description : {task.description}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Start Time : {task.startTime}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          End Time : {task.endTime}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedCompleted.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-green-700 mb-2">
+                      Completed ({selectedCompleted.length})
+                    </h4>
+                    {selectedCompleted.map((task) => (
+                      <div
+                        key={task._id}
+                        className="bg-green-50 border border-green-200 rounded p-2 mb-2"
+                      >
+                        <p className="font-medium text-sm">
+                          Assigned to : {task.assignedTo?.name || "Unassigned"}
+                        </p>
+                        <p className="font-medium text-sm">{task.title}</p>
+                        <p className="text-xs text-gray-600">
+                          {task.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

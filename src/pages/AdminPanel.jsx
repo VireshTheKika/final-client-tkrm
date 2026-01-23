@@ -49,7 +49,7 @@ export default function AdminPanel() {
   // Filter out admin from users list
   const nonAdminUsers = users.filter((u) => u._id !== adminId);
   const employeeUsers = users.filter(
-    (u) => u.role === "Employee" && u._id !== adminId
+    (u) => u.role === "Employee" && u._id !== adminId,
   );
 
   // ------------------------------
@@ -61,7 +61,7 @@ export default function AdminPanel() {
     try {
       await axios.delete(
         `${import.meta.env.VITE_API_URL}/api/users/${deleteModal.user._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setUsers((prev) => prev.filter((u) => u._id !== deleteModal.user._id));
@@ -98,7 +98,7 @@ export default function AdminPanel() {
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/tasks`,
         taskData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setTasks((prev) => [...prev, data.task]);
@@ -128,7 +128,7 @@ export default function AdminPanel() {
     try {
       await axios.delete(
         `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setTasks((prev) => prev.filter((task) => task._id !== taskId));
