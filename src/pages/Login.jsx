@@ -44,7 +44,9 @@ export default function Login() {
           onError={() => alert("Login Failed")}
         />
 
-        <p className="mt-6 text-sm text-gray-400">The KIKA Creaive Agency</p>
+        <p className="mt-6 text-sm text-gray-400">
+        The KIKA Creaive Agency
+        </p>
       </div>
     </div>
   );

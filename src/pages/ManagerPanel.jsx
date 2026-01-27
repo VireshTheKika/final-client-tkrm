@@ -8,6 +8,8 @@ export default function ManagerPanel() {
   const [employees, setEmployees] = useState([]);
   const [expandedTask, setExpandedTask] = useState(null); // for viewing notes
   const [assignLoading, setAssignLoading] = useState(false);
+
+  const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -15,14 +17,41 @@ export default function ManagerPanel() {
     assignedTo: "",
     deadline: "",
   });
+  const [clients, setClients] = useState([]);
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/clients/get-clients`,
+        );
+        setClients(res.data);
+      } catch (error) {
+        console.error("Failed to fetch clients", error);
+      }
+    };
 
+    fetchClients();
+  }, []);
   const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
   const token = userInfo?.token;
-  const managerId = userInfo?._id;
+  const managerId = userInfo?._id; //jhjybjhkm
+  const employeess = [
+    ...new Map(
+      tasks
+        .filter((t) => t.assignedTo)
+        .map((t) => [t.assignedTo._id, t.assignedTo]),
+    ).values(),
+  ];
+  const liveTasks = tasks.filter(
+    (task) =>
+      task.status === "Ongoing" &&
+      !task.isPaused &&
+      (selectedEmployee === "all" || task.assignedTo?._id === selectedEmployee),
+  );
 
   useEffect(() => {
     if (!token) {
-      console.error("⚠️ No token found — please login again");
+      console.error(" No token found — please login again");
       return;
     }
 
@@ -339,7 +368,6 @@ export default function ManagerPanel() {
                 placeholder="Enter task title"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Description
@@ -351,10 +379,29 @@ export default function ManagerPanel() {
                   setNewTask({ ...newTask, description: e.target.value })
                 }
                 className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring focus:ring-blue-100"
-                placeholder="Task details"
+                placeholder="Description or Reference "
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-1">Client</label>
+
+              <select
+                value={newTask.client}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, client: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              >
+                <option value="">Select Client</option>
+
+                {clients.map((client) => (
+                  <option key={client._id} value={client._id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Priority</label>
               <select
@@ -369,7 +416,6 @@ export default function ManagerPanel() {
                 <option>High</option>
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Deadline *
@@ -383,7 +429,6 @@ export default function ManagerPanel() {
                 className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring focus:ring-blue-100"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Assign To *
@@ -403,7 +448,6 @@ export default function ManagerPanel() {
                 ))}
               </select>
             </div>
-
             <button
               type="submit"
               disabled={assignLoading}
@@ -594,10 +638,22 @@ export default function ManagerPanel() {
                           Description : {task.description}
                         </p>
                         <p className="text-xs text-gray-600">
-                          Start Time : {task.startTime}
+                          Start Time :
+                          {task.startTime
+                            ? new Date(task.startTime).toLocaleString("en-US", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })
+                            : "Not Started"}
                         </p>
                         <p className="text-xs text-gray-600">
-                          End Time : {task.endTime}
+                          End Time :{" "}
+                          {task.endTime
+                            ? new Date(task.endTime).toLocaleString("en-US", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })
+                            : "Not Ended"}
                         </p>
                       </div>
                     ))}
@@ -621,6 +677,20 @@ export default function ManagerPanel() {
                         <p className="text-xs text-gray-600">
                           {task.description}
                         </p>
+                        <p className="text-xs text-gray-600">
+                          Start Time :{" "}
+                          {new Date(task.startTime).toLocaleString("en-US", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          End Time :{" "}
+                          {new Date(task.endTime).toLocaleString("en-US", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -629,6 +699,66 @@ export default function ManagerPanel() {
             )}
           </div>
         )}
+      </div>
+      
+      {/* live task wwala  */}
+      <div className="grid md:grid-cols-3 gap-6 mt-10 ">
+        <div className="gap-6 ">
+          <div className="md:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 p-5 max-h-[450px] overflow-hidden">
+            {/* Header + Filter */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Live Tasks
+              </h3>
+
+              <select
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="all">All</option>
+                {employeess.map((emp) => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Content */}
+            {liveTasks.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No live tasks for selected employee
+              </p>
+            ) : (
+              <ul className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                {liveTasks.map((task) => (
+                  <li
+                    key={task._id}
+                    className="border bg-gray-200 border-gray-100 rounded-xl p-4 hover:shadow transition"
+                  >
+                    <p className="text-[16px] text-white mt-1 bg-[#010110] rounded-[9px] w-fit px-2 py-1 inline-block">
+                      {task.assignedTo?.name || "Unassigned"}
+                    </p>
+                    <p className=" text-[20px] font-bold text-gray-800">
+                      {task.title}
+                    </p>
+
+                    {task.startTime && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Started:{" "}
+                        {new Date(task.startTime).toLocaleString("en-US", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

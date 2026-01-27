@@ -15,7 +15,7 @@ export default function TaskForm({ onTaskAdded }) {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/users/all") // you’ll add this route soon
+      .get("https://darksalmon-lemur-334611.hostingersite.com/api/users/all") // you’ll add this route soon
       .then((res) => setEmployees(res.data))
       .catch((err) => console.log(err));
   }, []);
@@ -26,7 +26,7 @@ export default function TaskForm({ onTaskAdded }) {
     setError("");
     try {
       await createTask(formData);
-      setMessage("✅ Task assigned successfully!");
+      setMessage(" Task assigned successfully!");
       onTaskAdded();
       setFormData({
         title: "",

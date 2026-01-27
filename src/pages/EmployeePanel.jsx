@@ -235,6 +235,9 @@ const TaskCard = React.memo(function TaskCard({
       </div>
 
       <p className="text-gray-600 text-sm mt-1">{task.description}</p>
+      {/* <p className="text-white text-sm mt-1 bg-[#010110] rounded-[9px] w-fit px-2 py-1 inline-block">
+        {task.client?.name || "no Client name"}
+      </p> */}
 
       <p className="text-xs text-gray-400 mt-1">
         Assigned{" "}
@@ -441,7 +444,6 @@ export default function EmployeePanel() {
       console.error(err);
     }
   };
-
   const completeTask = async (taskId) => {
     try {
       const { data } = await axios.patch(
