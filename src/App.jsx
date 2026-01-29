@@ -46,14 +46,7 @@ export default function App() {
         />
 
         {/* Admin Panel */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={["Admin"]}>
-              <AdminPanel />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/admin" element={<AdminPanel />} />
 
         {/* Manager Panel */}
         <Route

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { MdDelete } from "react-icons/md";
 import { toast } from "react-toastify";
+import ClientPanel from "../components/ClientPanel";
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -816,6 +817,22 @@ export default function AdminPanel() {
 
         <div className="p-6 bg-gray-50 min-h-screen">
           <div className="grid md:grid-cols-3 gap-6 mt-10 ">
+            <div className="gap-6">
+              <div className="md:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 p-5 max-h-[450px] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Clients
+                  </h3>
+                </div>
+
+                {/* Body */}
+                <div className="mt-2">
+                  <ClientPanel />
+                </div>
+              </div>
+            </div>
+
             <div className="gap-6 ">
               <div className="md:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 p-5 max-h-[450px] overflow-hidden">
                 {/* Header + Filter */}
