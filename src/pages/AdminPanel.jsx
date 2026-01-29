@@ -436,6 +436,7 @@ export default function AdminPanel() {
                               Social Media Executive
                             </option>
                             <option value="web">Web Developer</option>
+                            <option value="manger">Manager</option>
                             <option value="Photographer">Photographer</option>
                             <option value="digital">Digital Marketing</option>
                           </select>
