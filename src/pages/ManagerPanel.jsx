@@ -50,34 +50,40 @@ export default function ManagerPanel() {
   );
 
   useEffect(() => {
-    if (!token) {
-      console.error(" No token found — please login again");
-      return;
+  if (!token) {
+    console.error("No token found — please login again");
+    return;
+  }
+
+  const fetchData = async () => {
+    try {
+      const [tasksRes, employeesRes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/api/tasks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      setTasks(tasksRes.data);
+      setEmployees(employeesRes.data);
+    } catch (error) {
+      console.error(
+        "Error fetching manager data:",
+        error.response?.data || error.message,
+      );
     }
+  };
 
-    const fetchData = async () => {
-      try {
-        const [tasksRes, employeesRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/tasks`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+  fetchData(); 
 
-        setTasks(tasksRes.data);
-        setEmployees(employeesRes.data);
-      } catch (error) {
-        console.error(
-          " Error fetching manager data:",
-          error.response?.data || error.message,
-        );
-      }
-    };
-
+  const interval = setInterval(() => {
     fetchData();
-  }, [token]);
+  }, 5000); 
+
+  return () => clearInterval(interval); 
+}, [token]);
 
   const handleAssignTask = async (e) => {
     e.preventDefault();
