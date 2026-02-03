@@ -210,27 +210,39 @@ export default function AdminPanel() {
   const adminId = JSON.parse(sessionStorage.getItem("userInfo"))?._id;
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      console.error("No token found — please login again");
+      return;
+    }
 
     const fetchData = async () => {
       try {
-        const [usersRes, tasksRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
+        const [tasksRes, employeesRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL}/api/tasks`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/tasks`, {
+          axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
-        setUsers(usersRes.data);
         setTasks(tasksRes.data);
+        setEmployees(employeesRes.data);
       } catch (error) {
-        console.error("❌ Error loading admin panel:", error);
+        console.error(
+          "Error fetching manager data:",
+          error.response?.data || error.message,
+        );
       }
     };
 
     fetchData();
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [token]);
   const liveTasks = tasks.filter(
     (task) =>
