@@ -228,6 +228,7 @@ export default function AdminPanel() {
 
         setTasks(tasksRes.data);
         setEmployees(employeesRes.data);
+        setUsers(employeesRes.data); // ✅ ADD THIS
       } catch (error) {
         console.error(
           "Error fetching manager data:",
@@ -252,13 +253,7 @@ export default function AdminPanel() {
   );
   // Filter out admin from users list
   const nonAdminUsers = users.filter((u) => u._id !== adminId);
-  const employeess = [
-    ...new Map(
-      tasks
-        .filter((t) => t.assignedTo)
-        .map((t) => [t.assignedTo._id, t.assignedTo]),
-    ).values(),
-  ];
+  const employeess = users.filter((u) => u.role !== "Admin");
 
   // ------------------------------
   // DELETE USER
