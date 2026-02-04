@@ -228,7 +228,7 @@ export default function AdminPanel() {
 
         setTasks(tasksRes.data);
         setEmployees(employeesRes.data);
-        setUsers(employeesRes.data); // ✅ ADD THIS
+        setUsers(employeesRes.data);
       } catch (error) {
         console.error(
           "Error fetching manager data:",
@@ -395,7 +395,7 @@ export default function AdminPanel() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {/* USERS LIST */}
-            <div className="bg-white rounded-2xl shadow-sm  border border-gray-300 p-5">
+            <div className="bg-white rounded-2xl shadow-sm  border border-gray-300 p-5 max-h-[550px] overflow-y-auto ">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 Users
               </h3>

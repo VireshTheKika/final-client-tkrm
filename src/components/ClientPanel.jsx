@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import React from "react";
+import { toast } from "react-toastify";
 export default function ClientPanel() {
   const [clients, setClients] = useState([]);
   const [name, setName] = useState("");
@@ -32,6 +33,7 @@ export default function ClientPanel() {
       await axios.post(`${API}/add-client`, { name });
       setName("");
       fetchClients();
+      toast.success("Client added successfully!");
     } catch (err) {
       console.error(err);
     } finally {
@@ -57,7 +59,7 @@ export default function ClientPanel() {
 
   return (
     <div className="gap-6">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 max-h-[450px] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 max-h-[650px] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-800">Add Client</h3>
@@ -84,7 +86,7 @@ export default function ClientPanel() {
         {clients.length === 0 ? (
           <p className="text-sm text-gray-500">No clients found</p>
         ) : (
-          <ul className="space-y-3 max-h-[330px] overflow-y-auto pr-1">
+          <ul className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
             {clients.map((client) => (
               <li
                 key={client._id}

@@ -45,7 +45,7 @@ export default function Login() {
         />
 
         <p className="mt-6 text-sm text-gray-400">
-        The KIKA Creaive Agency
+        The KIKA Creative Agency
         </p>
       </div>
     </div>
